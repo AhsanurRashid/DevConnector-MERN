@@ -1,6 +1,9 @@
 const express = require('express')
-const { response } = require('express')
+const connectDB = require('./config/db')
 const app = express()
+
+// MongoDB connection
+connectDB()
 
 app.get('/', (req, res) => {
   res.send('Hello world!')
