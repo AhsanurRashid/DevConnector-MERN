@@ -5,6 +5,7 @@ const { body, validationResult } = require('express-validator')
 
 const Profile = require('../../models/Profile')
 const User = require('../../models/User')
+const { findOne } = require('../../models/Profile')
 
 //@router   GET api/profile/me
 //@desc     Get current user profile
@@ -13,7 +14,7 @@ router.get('/me', auth, async (req, res) => {
   try {
     const profile = await Profile.findOne({
       user: req.user.id,
-    }).populate('user', ['name, avatar'])
+    }).populate('User', ['name, avatar'])
     if (!profile) {
       return res.status(400).json({ msg: 'There is no profile for this user' })
     }
@@ -99,5 +100,59 @@ router.post(
     }
   }
 )
+
+//@router GET api/profile
+//@desc   Get all profiles
+//@access Public
+router.get('/', async (req, res) => {
+  try {
+    const profiles = await Profile.find().populate('User', ['name', 'avatar'])
+    res.json(profiles)
+  } catch (err) {
+    console.error(err.message)
+    res.send(500).send('Server Error')
+  }
+})
+
+//@router GET api/profile/user/:user_id
+//@desc   Get user profile by id
+//@access public
+router.get('/user/:user_id', async (req, res) => {
+  try {
+    const profile = await Profile.findOne({
+      user: req.params.user_id,
+    }).populate('User', ['name', 'avatar'])
+    if (!profile) {
+      return res.status(400).json({ msg: 'No profile for this user' })
+    }
+    res.json(profile)
+  } catch (err) {
+    console.error(err.message)
+    if (err.kind === 'ObjectId') {
+      return res.status(400).json({ msg: 'No profile for this user' })
+    }
+    res.status(500).send('Server Error')
+  }
+})
+
+//@router DELETE api/pprfile
+//@desc   Delete profile,user and parts
+//@acess  Private
+router.delete('/', auth, async (req, res) => {
+  try {
+    //@todo - remove user posts
+
+    //@Remove Profile
+    await Profile.findOneAndRemove({ user: req.user.id })
+
+    //@Remove User
+    await User.findOneAndRemove({ _id: req.user.id })
+
+    res.json({ msg: 'User deleted' })
+  } catch (err) {
+    console.error(err.message)
+    res.status(500).send('Server Error')
+  }
+})
 
 module.exports = router
